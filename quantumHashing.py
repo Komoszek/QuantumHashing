@@ -10,29 +10,26 @@ backend = BasicAer.get_backend('qasm_simulator')
 
 class QuantumHash:
 	def __init__(self, msg='', qubits_num=0):
-		self.msg = msg
-		self.qubits_num = qubits_num
+		self._msg = msg
+		self._qubits_num = qubits_num
 		self.circuit = QuantumCircuit(self.qubits_num)
-		self.k = []
-		self.constructed_circuit = True
-		self.result = None
+		self._k = []
+		self._constructed_circuit = True
+		self._result = None
 
 	def get_result(self, recalculate=False):
-		if recalculate or not self.constructed_circuit or self.result is None:
+		if recalculate or not self.constructed_circuit or self._result is None:
 			self.recalculate_result()
-		return self.result
+		return self._result
 
 	def recalculate_result(self, shots=1000):
 		if not self.constructed_circuit:
 			self.generate_circuit()
-		self.result = backend.run(transpile(self.circuit, backend), shots=shots).result()
-
-	def get_control_qubits_num(self):
-		return self.qubits_num - 1
+		self._result = backend.run(transpile(self.circuit, backend), shots=shots).result()
 
 	def generate_circuit(self):
 		self.circuit = QuantumCircuit(self.qubits_num)
-		control_qubits_num = self.get_control_qubits_num()
+		control_qubits_num = self.control_qubits_num
 		N = 2 ** control_qubits_num
 		bit = 1
 		self.circuit.h(range(0, control_qubits_num))
@@ -47,27 +44,42 @@ class QuantumHash:
 
 	def show_circuit(self, output='mpl'):
 		if not self.constructed_circuit:
-			self.generateCircuit()
+			self.generate_circuit()
 		self.circuit.draw(output=output)
 		plt.show()
 
 	def show_histogram(self):
-		plot_histogram(self.get_result().get_counts(self.circuit))
+		plot_histogram(self.get_result().get_counts(self.circuit)) # no classical output
 
-	def set_msg(self, msg):
-		self.msg = msg
+	@property
+	def msg(self):
+		return self._msg
+	@msg.setter
+	def msg(self, value):
+		self._msg = value
+
+	@property
+	def control_qubits_num(self):
+		return self._qubits_num - 1
+
+	@property
+	def qubits_num(self):
+		return self._qubits_num
+
+	@qubits_num.setter
+	def qubits_num(self, value):
+		self._qubits_num = value
+		self.k = [i for i in range(2 ** self.control_qubits_num)] # replace with adding zeros and removing last elements
 		self.constructed_circuit = False
 
-	def set_qubits_num(self, num):
-		self.qubits_num = num
-		self.set_k(range(2 ** self.get_control_qubits_num())) # replace with adding zeros and removing last elements
+	@property
+	def k(self):
+		return self._k
+	@k.setter
+	def k(self, value):
+		self._k = value
 		self.constructed_circuit = False
-	
-	def set_k(self, new_k):
-		self.k = new_k
-		self.constructed_circuit = False
-	
+
 	def set_single_k(self, new_k_val, i):
 		self.k[i] = new_k_val
 		self.constructed_circuit = False
-

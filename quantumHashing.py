@@ -1,15 +1,13 @@
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
 from qiskit.circuit.library import RYGate
 from qiskit.visualization import plot_histogram
-from qiskit import transpile
 import matplotlib.pyplot as plt
 import math
-from qiskit import BasicAer
-
-backend = BasicAer.get_backend('qasm_simulator')
+from qiskit import Aer, execute
 
 class QuantumHash:
-	def __init__(self, msg='', qubits_num=0):
+	def __init__(self, backend=Aer.get_backend('qasm_simulator'), msg=[], qubits_num=0):
+		self.backend = backend
 		self._msg = msg
 		self._qubits_num = qubits_num
 		self.circuit = QuantumCircuit(self.qubits_num)
@@ -25,7 +23,7 @@ class QuantumHash:
 	def recalculate_result(self, shots=1000):
 		if not self.constructed_circuit:
 			self.generate_circuit()
-		self._result = backend.run(transpile(self.circuit, backend), shots=shots).result()
+		self._result = execute(self.circuit.measure_all(inplace=False), self.backend, shots=shots).result()
 
 	def generate_circuit(self):
 		self.circuit = QuantumCircuit(self.qubits_num)
@@ -35,12 +33,14 @@ class QuantumHash:
 		self.circuit.h(range(0, control_qubits_num))
 
 		for i in range(len(self.msg)):
-			if self.msg[i] == '1':
+			if self.msg[i]:
 				for j in range(N):
 					gate = RYGate((4 * math.pi * bit * self.k[j]) / N).control(control_qubits_num, ctrl_state=j)
 					self.circuit.append(gate, range(self.qubits_num))
 			bit *= 2
 		self.result = None
+		self.constructed_circuit = True
+		self._measure_circuit = self.circuit.measure_all(inplace=False)
 
 	def show_circuit(self, output='mpl'):
 		if not self.constructed_circuit:
@@ -49,7 +49,9 @@ class QuantumHash:
 		plt.show()
 
 	def show_histogram(self):
-		plot_histogram(self.get_result().get_counts(self.circuit)) # no classical output
+		res = self.get_result().get_counts(self.circuit.measure_all(inplace=False))
+		plot_histogram(res, title='Hash histogram') 
+		plt.show()
 
 	@property
 	def msg(self):
@@ -83,3 +85,12 @@ class QuantumHash:
 	def set_single_k(self, new_k_val, i):
 		self.k[i] = new_k_val
 		self.constructed_circuit = False
+'''
+a = QuantumHash()
+a.qubits_num = 4
+a.msg = [0, 1, 0]
+a.show_circuit()
+a.show_histogram() # it will probably segfault if you try it without show_circuit()
+'''
+
+

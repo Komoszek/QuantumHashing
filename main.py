@@ -108,6 +108,10 @@ class MainWindow(QMainWindow):
         print("swap test button clicked")
         first_message = [int(d) for d in self.inputWordLine.text()]
         second_message = [int(d) for d in self.inputSwapTestWordLine.text()]
+        if(len(first_message) != len(second_message)):
+            QMessageBox.about(self, "Error", "Długości wiadomości muszą być równe!")
+            return
+
         control_qubits_count = self.inputControlQubitNumber.value()
         k = self.processTable()
         swapTester = SwapTester(first_message, second_message, control_qubits_count, k)

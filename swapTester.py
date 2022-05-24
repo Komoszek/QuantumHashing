@@ -30,13 +30,13 @@ class SwapTester:
     def generate_message_circuit(self, first_qubit_index, control_qubits_count, message):
         last_qubit_index = first_qubit_index + control_qubits_count
         self.circuit.h(range(first_qubit_index, last_qubit_index))
-
-        N = 2 ** control_qubits_count;
+        N = 2 ** len(message)
+        K = 2 ** control_qubits_count
         bit = 1
 
         for i in range(len(message)):
             if message[i]:
-                for j in range(N):
+                for j in range(K):
                     gate = RYGate((4 * math.pi * bit * self.k[j]) / N).control(last_qubit_index - first_qubit_index, ctrl_state=j)
                     qargs = range(first_qubit_index, last_qubit_index + 1)
                     self.circuit.append(gate, qargs)

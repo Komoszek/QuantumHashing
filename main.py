@@ -111,7 +111,6 @@ class MainWindow(QMainWindow):
         control_qubits_count = self.inputControlQubitNumber.value()
         k = self.processTable()
         swapTester = SwapTester(first_message, second_message, control_qubits_count, k)
-        swapTester.show_circuit()
         swapTester.run_test(self)
 
     def showQuantumCircuitButtonClicked(self):

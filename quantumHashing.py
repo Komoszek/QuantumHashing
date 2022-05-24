@@ -28,7 +28,8 @@ class QuantumHash:
     def generate_circuit(self):
         self.circuit = QuantumCircuit(self.qubits_num)
         control_qubits_num = self.control_qubits_num
-        N = 2 ** control_qubits_num
+        N = 2 ** len(self.msg)
+        K = 2 ** control_qubits_num
         bit = 1
         self.circuit.h(range(0, control_qubits_num))
 
@@ -36,7 +37,7 @@ class QuantumHash:
 
         for i in range(len(self.msg)):
             if self.msg[i]:
-                for j in range(N):
+                for j in range(K):
                     gate = RYGate((4 * math.pi * bit * self.k[j]) / N).control(control_qubits_num, ctrl_state=j)
                     self.circuit.append(gate, range(self.qubits_num))
             bit *= 2

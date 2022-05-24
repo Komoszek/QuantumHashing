@@ -7,11 +7,15 @@ from PyQt6.QtWidgets import *
 from PyQt6.QtCore import *
 from PyQt6.QtGui import *
 
+from swapTester import SwapTester
+
+
 class TableInputDelegate(QItemDelegate):
     def createEditor(self, parent, option, index):
         w = QLineEdit(parent)
         w.setValidator(QRegularExpressionValidator(QRegularExpression("\d*")))
         return w
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -101,8 +105,14 @@ class MainWindow(QMainWindow):
         self.quantumHasher.k = self.processTable()
 
     def swapTestButtonClicked(self):
-        print(self.processTable())
         print("swap test button clicked")
+        first_message = [int(d) for d in self.inputWordLine.text()]
+        second_message = [int(d) for d in self.inputSwapTestWordLine.text()]
+        control_qubits_count = self.inputControlQubitNumber.value()
+        k = self.processTable()
+        swapTester = SwapTester(first_message, second_message, control_qubits_count, k)
+        swapTester.show_circuit()
+        swapTester.run_test(self)
 
     def showQuantumCircuitButtonClicked(self):
         self.setupQuantumHasher()
@@ -116,8 +126,7 @@ class MainWindow(QMainWindow):
         print("show state vector button clicked")
 
     def adjustTableRowCount(self, qubitNumber):
-        self.paramTable.setRowCount(2**qubitNumber)
-
+        self.paramTable.setRowCount(2 ** qubitNumber)
 
 
 if __name__ == "__main__":

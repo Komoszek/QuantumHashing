@@ -32,6 +32,8 @@ class QuantumHash:
         bit = 1
         self.circuit.h(range(0, control_qubits_num))
 
+        print(self.qubits_num)
+
         for i in range(len(self.msg)):
             if self.msg[i]:
                 for j in range(N):

@@ -20,6 +20,7 @@ class TableInputDelegate(QItemDelegate):
 class MainWindow(QMainWindow):
     def __init__(self):
         self.quantumHasher = quantumHashing.QuantumHash()
+        self.quantumHasher2 = quantumHashing.QuantumHash()
         QMainWindow.__init__(self)
         binaryValidator = QRegularExpressionValidator(QRegularExpression("[0-1]*"))
 
@@ -40,7 +41,7 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.inputWordLine, 1, 0, 1, 1)
 
         self.controlQubitNumberLabel = QLabel(self)
-        self.controlQubitNumberLabel.setText("Liczba kubitów:")
+        self.controlQubitNumberLabel.setText("Liczba kubitów kontrolnych:")
         self.controlQubitNumberLabel.adjustSize()
         layout.addWidget(self.controlQubitNumberLabel, 2, 0, 1, 1)
 
@@ -63,28 +64,23 @@ class MainWindow(QMainWindow):
         self.showHistogramButton.clicked.connect(self.showHistogramButtonClicked)
         layout.addWidget(self.showHistogramButton, 0, 1, 1, 1)
 
-        self.showStateVectorButton = QPushButton(self)
-        self.showStateVectorButton.setText("Wyświetl wektor stanów")
-        self.showStateVectorButton.clicked.connect(self.showStateVectorButtonClicked)
-        layout.addWidget(self.showStateVectorButton, 1, 1, 1, 1)
-
         self.showQuantumCircuitButton = QPushButton(self)
         self.showQuantumCircuitButton.setText("Wyświetl schemat układu kwantowego")
         self.showQuantumCircuitButton.clicked.connect(self.showQuantumCircuitButtonClicked)
-        layout.addWidget(self.showQuantumCircuitButton, 2, 1, 1, 1)
+        layout.addWidget(self.showQuantumCircuitButton, 1, 1, 1, 1)
 
         self.inputSwapTestWordLabel = QLabel(self)
         self.inputSwapTestWordLabel.setText("Binarne słowo wejściowe do porównania \nw Swap test:")
-        layout.addWidget(self.inputSwapTestWordLabel, 3, 1, 1, 1)
+        layout.addWidget(self.inputSwapTestWordLabel, 2, 1, 1, 1)
 
         self.inputSwapTestWordLine = QLineEdit(self)
         self.inputSwapTestWordLine.setValidator(binaryValidator)
-        layout.addWidget(self.inputSwapTestWordLine, 4, 1, 1, 1)
+        layout.addWidget(self.inputSwapTestWordLine, 3, 1, 1, 1)
 
         self.swapTestButton = QPushButton(self)
         self.swapTestButton.setText("Wykonaj Swap test")
         self.swapTestButton.clicked.connect(self.swapTestButtonClicked)
-        layout.addWidget(self.swapTestButton, 5, 1, 1, 1)
+        layout.addWidget(self.swapTestButton, 4, 1, 1, 1)
 
         self.authorsLabel = QLabel(self)
         self.authorsLabel.setText("Autorzy: Komoszyński Łukasz, Ulaski Wojciech, Zadrożny Bartosz")
@@ -92,41 +88,62 @@ class MainWindow(QMainWindow):
 
     def processTable(self):
         k = []
+        maxVal = 2 ** len(self.inputWordLine.text()) - 1
         for row in range(self.paramTable.rowCount()):
             item = self.paramTable.item(row, 0)
+            if item is None:
+                return None
             text = item.text()
-            k.append(int(text))
+            value = int(text)
+
+            if value < 0 or value > maxVal:
+                return None
+            k.append(value)
 
         return k
 
     def setupQuantumHasher(self):
+        table = self.processTable()
+        if table is None:
+            return False
+
+
         self.quantumHasher.msg = [int(d) for d in self.inputWordLine.text()]
         self.quantumHasher.control_qubits_num = self.inputControlQubitNumber.value()
-        self.quantumHasher.k = self.processTable()
+        self.quantumHasher.k = table
+
+        self.quantumHasher2.msg = [int(d) for d in self.inputSwapTestWordLine.text()]
+        self.quantumHasher2.control_qubits_num = self.quantumHasher.control_qubits_num
+        self.quantumHasher2.k = self.quantumHasher.k
+        return True
+
 
     def swapTestButtonClicked(self):
-        print("swap test button clicked")
-        first_message = [int(d) for d in self.inputWordLine.text()]
-        second_message = [int(d) for d in self.inputSwapTestWordLine.text()]
-        if(len(first_message) != len(second_message)):
+        if(len(self.inputWordLine.text()) != len(self.inputSwapTestWordLine.text())):
             QMessageBox.about(self, "Error", "Długości wiadomości muszą być równe!")
             return
 
-        control_qubits_count = self.inputControlQubitNumber.value()
-        k = self.processTable()
-        swapTester = SwapTester(first_message, second_message, control_qubits_count, k)
+        if not self.setupQuantumHasher():
+            QMessageBox.about(self, "Error", "Błąd odczytu układów kwantowych!")
+            return
+
+        swapTester = SwapTester(self.quantumHasher, self.quantumHasher2)
+        swapTester.show_circuit()
         swapTester.run_test(self)
 
     def showQuantumCircuitButtonClicked(self):
         self.setupQuantumHasher()
+        if not self.setupQuantumHasher():
+            QMessageBox.about(self, "Error", "Błąd odczytu układów kwantowych!")
+            return
         self.quantumHasher.show_circuit()
 
     def showHistogramButtonClicked(self):
         self.setupQuantumHasher()
+        if not self.setupQuantumHasher():
+            QMessageBox.about(self, "Error", "Błąd odczytu układów kwantowych!")
+            return
         self.quantumHasher.show_histogram()
-
-    def showStateVectorButtonClicked(self):
-        print("show state vector button clicked")
 
     def adjustTableRowCount(self, qubitNumber):
         self.paramTable.setRowCount(2 ** qubitNumber)

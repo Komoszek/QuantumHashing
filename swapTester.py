@@ -2,45 +2,30 @@ from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
 from qiskit import Aer, execute
 from qiskit.tools.monitor import job_monitor
 import matplotlib.pyplot as plt
-import math
-from qiskit.circuit.library import RYGate
 from PyQt6.QtWidgets import QMessageBox
 
 class SwapTester:
-    def __init__(self, first_message, second_message, control_qubits_count, k):
+    def __init__(self, first_hash, second_hash):
         self.backend = Aer.get_backend('qasm_simulator')
-        self.k = k
-        self.generate_circut(first_message, second_message,control_qubits_count);
+        self.generate_circut(first_hash, second_hash)
 
-    def generate_circut(self, first_message, second_message, control_qubits_count):
-        quantumRegiter = QuantumRegister(2 * (control_qubits_count + 1) + 1, 'q')
-        classicalRegister = ClassicalRegister(1, 'c')
-        self.circuit = QuantumCircuit(quantumRegiter, classicalRegister)
+    def generate_circut(self, first_hash, second_hash):
+        qa = QuantumRegister(first_hash.qubits_num, 'qa')
+        qb = QuantumRegister(second_hash.qubits_num, 'qb')
+        q = QuantumRegister(1, 'q')
+        c = ClassicalRegister(1, 'c')
 
-        self.generate_message_circuit(0, control_qubits_count, first_message)
-        self.generate_message_circuit(control_qubits_count + 1, control_qubits_count, second_message)
+        sub_circuit1 = first_hash.circuit.to_instruction(label='Hash 1')
+        sub_circuit2 = second_hash.circuit.to_instruction(label='Hash 2')
+        self.circuit = QuantumCircuit(qa, qb, q, c)
 
-        first_result_qubit_index = control_qubits_count
-        second_result_qubit_index = 2 * control_qubits_count + 1
+        self.circuit.append(sub_circuit1, [x for x in qa])
+        self.circuit.append(sub_circuit2, [x for x in qb])
 
-        self.generate_swap_test_circuit(2 * (control_qubits_count + 1), first_result_qubit_index, second_result_qubit_index)
+        first_result_qubit_index = first_hash.control_qubits_num
+        second_result_qubit_index = 2 * first_hash.control_qubits_num + 1
 
-        self._measure_circuit = self.circuit.measure_all(inplace=False)
-
-    def generate_message_circuit(self, first_qubit_index, control_qubits_count, message):
-        last_qubit_index = first_qubit_index + control_qubits_count
-        self.circuit.h(range(first_qubit_index, last_qubit_index))
-        N = 2 ** len(message)
-        K = 2 ** control_qubits_count
-        bit = 1
-
-        for i in range(len(message)):
-            if message[i]:
-                for j in range(K):
-                    gate = RYGate((4 * math.pi * bit * self.k[j]) / N).control(last_qubit_index - first_qubit_index, ctrl_state=j)
-                    qargs = range(first_qubit_index, last_qubit_index + 1)
-                    self.circuit.append(gate, qargs)
-            bit *= 2
+        self.generate_swap_test_circuit(2 * (first_hash.control_qubits_num + 1), first_result_qubit_index, second_result_qubit_index)
 
     def generate_swap_test_circuit(self, test_qubit_index, first_result_qubit, second_result_qubit):
         self.circuit.h([test_qubit_index])
@@ -49,8 +34,7 @@ class SwapTester:
         self.circuit.h([test_qubit_index])
         self.circuit.measure([test_qubit_index], [0])
 
-    def run_test(self, window):
-        nShots = 1000
+    def run_test(self, window, nShots = 1000):
         job = execute(self.circuit, self.backend, shots=nShots)
 
         job_monitor(job)

@@ -77,10 +77,15 @@ class MainWindow(QMainWindow):
         self.inputSwapTestWordLine.setValidator(binaryValidator)
         layout.addWidget(self.inputSwapTestWordLine, 3, 1, 1, 1)
 
+        self.swapTestShowButton = QPushButton(self)
+        self.swapTestShowButton.setText("Pokaż układ kwantowy Swap testu")
+        self.swapTestShowButton.clicked.connect(self.swapTestShowButtonClicked)
+        layout.addWidget(self.swapTestShowButton, 4, 1, 1, 1)
+
         self.swapTestButton = QPushButton(self)
         self.swapTestButton.setText("Wykonaj Swap test")
         self.swapTestButton.clicked.connect(self.swapTestButtonClicked)
-        layout.addWidget(self.swapTestButton, 4, 1, 1, 1)
+        layout.addWidget(self.swapTestButton, 5, 1, 1, 1)
 
         self.authorsLabel = QLabel(self)
         self.authorsLabel.setText("Autorzy: Komoszyński Łukasz, Ulaski Wojciech, Zadrożny Bartosz")
@@ -92,11 +97,13 @@ class MainWindow(QMainWindow):
         for row in range(self.paramTable.rowCount()):
             item = self.paramTable.item(row, 0)
             if item is None:
+                QMessageBox.about(self, "Error", f"Brak współczynnika na {row+1} pozycji!")
                 return None
             text = item.text()
             value = int(text)
 
             if value < 0 or value > maxVal:
+                QMessageBox.about(self, "Error", f"Współczynnik na {row+1} pozycji spoza zakresu [0, {maxVal}]!")
                 return None
             k.append(value)
 
@@ -107,7 +114,6 @@ class MainWindow(QMainWindow):
         if table is None:
             return False
 
-
         self.quantumHasher.msg = [int(d) for d in self.inputWordLine.text()]
         self.quantumHasher.control_qubits_num = self.inputControlQubitNumber.value()
         self.quantumHasher.k = table
@@ -117,31 +123,33 @@ class MainWindow(QMainWindow):
         self.quantumHasher2.k = self.quantumHasher.k
         return True
 
-
-    def swapTestButtonClicked(self):
+    def setupSwapTester(self):
         if(len(self.inputWordLine.text()) != len(self.inputSwapTestWordLine.text())):
             QMessageBox.about(self, "Error", "Długości wiadomości muszą być równe!")
-            return
+            return None
 
         if not self.setupQuantumHasher():
-            QMessageBox.about(self, "Error", "Błąd odczytu układów kwantowych!")
-            return
+            return None
 
-        swapTester = SwapTester(self.quantumHasher, self.quantumHasher2)
-        swapTester.show_circuit()
-        swapTester.run_test(self)
+        return SwapTester(self.quantumHasher, self.quantumHasher2)
+
+    def swapTestShowButtonClicked(self):
+        swapTester = self.setupSwapTester()
+        if swapTester is not None:
+            swapTester.show_circuit()
+
+    def swapTestButtonClicked(self):
+        swapTester = self.setupSwapTester()
+        if swapTester is not None:
+            swapTester.run_test(self)
 
     def showQuantumCircuitButtonClicked(self):
-        self.setupQuantumHasher()
         if not self.setupQuantumHasher():
-            QMessageBox.about(self, "Error", "Błąd odczytu układów kwantowych!")
             return
         self.quantumHasher.show_circuit()
 
     def showHistogramButtonClicked(self):
-        self.setupQuantumHasher()
         if not self.setupQuantumHasher():
-            QMessageBox.about(self, "Error", "Błąd odczytu układów kwantowych!")
             return
         self.quantumHasher.show_histogram()
 
